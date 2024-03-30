@@ -6,6 +6,8 @@ import {
   StyleSheet,
   Pressable,
   ActivityIndicator,
+  ScrollView,
+  Dimensions,
 } from 'react-native';
 import { defaultPizzaImage } from '@/components/ProductListItem';
 import { useState } from 'react';
@@ -29,7 +31,7 @@ const ProductDetailsScreen = () => {
   const { addItem } = useCart();
 
   const router = useRouter();
-
+  const windowWidth = Dimensions.get('window').width;
   
 
   const addToCart = () => {
@@ -70,20 +72,25 @@ const ProductDetailsScreen = () => {
         }}
       />
 
-      <Stack.Screen options={{ title: annonce.name }} />
+      <Stack.Screen options={{ title: annonce?.name }} />
 
       <RemoteImage
-        path={ annonce?.image}
-        fallback={defaultPizzaImage}
+        paths={annonce?.imageUrls}
+        fallback={annonce?.imageUrls[0]}
         style={styles.image}
       />
+      
+      
+     
 
-      <Text>{annonce.description}</Text> 
-      <Text>{annonce.address}</Text> 
-      <Text>{annonce.regularPrice}</Text>
+      <Text>{annonce?.description}</Text> 
+      <Text>{annonce?.address}</Text> 
+      <Text>{annonce?.regularPrice}</Text>
     </View>
   );
 };
+
+  
 
 const styles = StyleSheet.create({
   container: {
@@ -92,7 +99,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   image: {
-    width: '100%',
+    width:100,
     aspectRatio: 1,
   },
   title: {

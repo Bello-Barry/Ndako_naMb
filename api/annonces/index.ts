@@ -45,14 +45,17 @@ export const useInsertAnnonce = () => {
           description: data.description,
           address: data.address,
           regularPrice: data.regularPrice,
-          discountPrice: data.discountPrice,
+         
           bathrooms: data.bathrooms,
           bedrooms: data.bedrooms,
-          furnished: data.furnished,
+          
           parking: data.parking,
           type: data.type,
-          offer: data.offer,
+         
           imageUrls: data.imageUrls,
+          created_at: '',
+          id: 0,
+          imageUrl: ''
         })
         .single();
 
@@ -62,7 +65,7 @@ export const useInsertAnnonce = () => {
       return newAnnonce;
     },
     async onSuccess() {
-      await queryClient.invalidateQueries(['annonce']);
+      await queryClient.invalidateQueries(['annonces']);
     },
   });
 };
@@ -75,23 +78,23 @@ export const useUpdateAnnonce = () => {
   return useMutation({
     async mutationFn(data: any) {
       const { error, data: updatedAnnonce } = await supabase
-        .from('annonce')
+        .from('annonces')
         .update({
           name: data.name,
           description: data.description,
           address: data.address,
           regularPrice: data.regularPrice,
-          discountPrice: data.discountPrice,
+         
           bathrooms: data.bathrooms,
           bedrooms: data.bedrooms,
-          furnished: data.furnished,
+          
           parking: data.parking,
           type: data.type,
-          offer: data.offer,
+         
           imageUrls: data.imageUrls,
           created_at: '',
           id: 0,
-          image: ''
+          imageUrl: ''
          
         })
         .eq('id', data.id)
@@ -104,8 +107,8 @@ export const useUpdateAnnonce = () => {
       return updatedAnnonce;
     },
     async onSuccess(_, { id }) {
-      await queryClient.invalidateQueries(['annonce']);
-      await queryClient.invalidateQueries(['annonce', id]);
+      await queryClient.invalidateQueries(['annonces']);
+      await queryClient.invalidateQueries(['annonces', id]);
     },
   });
 };
@@ -117,7 +120,7 @@ export const useDeleteAnnonce = () => {
 
   return useMutation({
     async mutationFn(id: number) {
-      const { error } = await supabase.from('annonce').delete().eq('id', id);
+      const { error } = await supabase.from('annonces').delete().eq('id', id);
       if (error) {
         throw new Error(error.message);
       }

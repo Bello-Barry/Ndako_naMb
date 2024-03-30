@@ -1,8 +1,10 @@
+//import ImagePicker from 'react-native-image-crop-picker';
+
 import Button from '@/components/Button';
 import { defaultPizzaImage } from '@/components/ProductListItem';
 import Colors from '@/constants/Colors';
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Image, Alert, Switch, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Image, Alert,Dimensions, Switch, ScrollView, TouchableOpacity } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -17,6 +19,7 @@ import { randomUUID } from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import { decode } from 'base64-arraybuffer';
 import { annonce } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
 
 const CreateProductScreen = () => {
   const [formData, setFormData] = useState<annonce>({
@@ -24,19 +27,19 @@ const CreateProductScreen = () => {
     description: '',
     address: '',
     regularPrice: 0,
-    discountPrice: 0,
+   
     bathrooms: 0,
     bedrooms: 0,
-    furnished: false,
+   
     parking: false,
     type: '',
-    offer: '',
+   
     imageUrls: [],
   });
-  const [name, setName] = useState('');
+  {/*const [name, setName] = useState('');
   const [regularPrice, setRegularPrice] = useState('');
-  const [errors, setErrors] = useState('');
-  const [image, setImage] = useState<string | null>(null);
+  const [errors, setErrors] = useState('');*/}
+const [image, setImage] = useState<string | null>(null);
 
   const { id: idString } = useLocalSearchParams();
   const id = parseFloat(
@@ -54,7 +57,7 @@ const CreateProductScreen = () => {
 
   useEffect(() => {
     if (updatingAnnonce) {
-      setFormData(updatingAnnonce);
+      setFormData(formData);
      {/*
     setFormData(updatingAnnonce.regularPrice.toString());
       setFormData(updatingAnnonce.discountPrice);
@@ -84,27 +87,18 @@ const CreateProductScreen = () => {
       type: '',
 
       imageUrls: [],
-      discountPrice: 0,
-      furnished: false,
-      offer: ''
+
+    
     };
     setFormData(emptyFormData);
   };
 
   const validateInput = () => {
-    setErrors('');
-    if (!name) {
-      setErrors('Name is required');
+    if (!formData.name || !formData.description || !formData.imageUrls|| !formData.address || !formData.regularPrice || !formData.parking || !formData.type) {
+      Alert.alert('Error', 'Please fill in all required fields.');
       return false;
     }
-    if (!regularPrice) {
-      setErrors('Price is required');
-      return false;
-    }
-    if (isNaN(parseFloat(regularPrice))) {
-      setErrors('Price is not a number');
-      return false;
-    }
+    // Add additional validation as needed
     return true;
   };
 
@@ -123,11 +117,18 @@ const CreateProductScreen = () => {
     }
 
     const imagePath = await uploadImage();
+    const newAnnonce: Omit<annonce, 'id'> = { ...formData  };
 
-    // Save in the database
-    {/*name, regularPrice: parseFloat(regularPrice), image: imagePath*/}
+    if (imagePath) {
+      newAnnonce.imageUrls = [imagePath];
+    }
+    console.log('formData',formData)
+    console.log('formDataimageUrls',formData.imageUrls)
+    
+
+  
     insertAnnonce(
-      {...formData, imageUrls: [imagePath]  },
+      {...formData },
       {
         onSuccess: () => {
           resetFields();
@@ -147,7 +148,7 @@ const CreateProductScreen = () => {
 
     updateAnnonce(
      
-      {...formData, imageUrls: [imagePath]},
+      {...formData, imageUrls:[imagePath]},
       {
         onSuccess: () => {
           resetFields();
@@ -157,47 +158,89 @@ const CreateProductScreen = () => {
     );
   };
 
-  {/*const pickImage = async () => {
-    // No permissions request is necessary for launching the image library
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
 
-    if (!result.canceled) {
-      setFormData.imageUrls(result.assets[0].uri);
-    }
-  };*/}
-  const pickImage = async () => {
-    // Aucune demande d'autorisation n'est nécessaire pour lancer la bibliothèque d'images
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
   
-    {/*if (!result.canceled && result.assets && result.assets.length > 0) {
-      // Mettez à jour l'état de l'imageUrls avec l'URI de l'image sélectionnée
-      setFormData((prevData) => ({
-        ...prevData,
-        imageUrls: [result.assets[0].uri], // Utilisez un tableau pour stocker l'URI
-      }));*/}
-      const firstImageUrl = result?.assets?.[0]?.uri;
+{/*const pickImage = async () => {
+  try {
+    // Lancez ImagePicker pour permettre la sélection multiple
+    const images = await ImagePicker.openPicker({
+      multiple: true,
+      mediaTypes: 'photo',
+      // Ajoutez d'autres options ici selon vos besoins
+    });
 
-      if (firstImageUrl?.startsWith('file://')) {
-        // Mettez à jour l'état de imageUrls avec l'URI de l'image sélectionnée
+    // 'images' est un tableau contenant les informations de chaque image sélectionnée
+    const uris = images.map((image: { path: any; }) => image.path);
+
+    // Mise à jour de l'état avec les nouvelles images
+    setFormData(prevData => ({
+      ...prevData,
+      imageUrls: [...prevData.imageUrls, ...uris] // Ajoutez les URIs au tableau existant
+    }));
+  } catch (e) {
+    console.error(e);
+  }
+};
+*/}
+
+ 
+
+const pickImage = async () => {
+  let results: string[] = [];
+  // Lancez l'ImagePicker pour permettre la sélection multiple
+  let result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    //allowsEditing: true,
+    aspect: [4, 3],
+    quality: 1,
+    // Ajoutez cette option pour permettre la sélection multiple
+    allowsMultipleSelection: true,
+    selectionLimit: 6
+  });
+
+  if (!result.canceled && result.assets) {
+    // Parcourez chaque image sélectionnée et ajoutez son URI au tableau results
+    result.assets.forEach((image: { uri: string }) => {
+      const uri = image.uri;
+      results.push(uri);
+    });
+
+    // Mise à jour de l'état avec les nouvelles images
+    setFormData((prevData) => ({
+      ...prevData,
+      imageUrls: [...prevData.imageUrls, ...results] // Ajoutez les URIs au tableau existant
+    }));
+  }
+};
+
+
+
+  
+  {/*const pickImage = async () => {
+    let results = [];
+    for (let i = 0; i < 4; i++) {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+       
+      });
+  
+      if (!result.canceled && result.assets) {
+        // Assurez-vous que result.assets est non-null avant d'accéder à result.assets[0].uri
+        const uri = result.assets[0].uri;
+        results.push(uri); // Stockez l'URI dans le tableau results
         setFormData((prevData) => ({
           ...prevData,
-          imageUrls: [firstImageUrl], // Utilisez un tableau pour stocker l'URI
+          imageUrls: [...prevData.imageUrls, uri] // Ajoutez l'URI au tableau existant
         }));
-      } else {
-        console.error('Aucune image sélectionnée ou URL invalide.');
-        // Gérez le cas où aucune image n'a été sélectionnée ou si l'URL est invalide.
       }
     }
+  };*/}
+  
+      
+    
   
   
 
@@ -223,17 +266,45 @@ const CreateProductScreen = () => {
     ]);
   };
 
-
+  const submitToSupabase = async () => {
+    const imagePath = await uploadImage();
+    
+    try {
+      const { data, error } = await supabase
+        .from('annonces') // Remplacez 'annonces' par le nom de votre table
+        .insert([
+          {
+            name: formData.name,
+            description: formData.description,
+            address: formData.address,
+            regularPrice: formData.regularPrice,
+            bathrooms: formData.bathrooms,
+            bedrooms: formData.bedrooms,
+            parking: formData.parking,
+            type: formData.type,
+            imageUrls: formData.imageUrls,
+          },
+        ]);
+  
+      if (error) throw error;
+  
+      // Gérer la réponse de succès ici
+      console.log('Données soumises avec succès :', data);
+    } catch (error) {
+      // Gérer l'erreur ici
+      console.error('Erreur lors de la soumission des données :', error);
+    }
+  };
 
   async function uploadImage(): Promise<string | undefined> {
-    const imageUrls = formData.imageUrls; // Assuming formData is defined elsewhere
+    //const imageUrls = formData.imageUrls; // Assuming formData is defined elsewhere
   
-    if (!Array.isArray(imageUrls)) {
+    if (!Array.isArray(formData.imageUrls)) {
       console.error('imageUrls should be an array of strings.');
       return;
     }
   
-    const firstImageUrl = imageUrls[0]; // Get the first URL (you can adjust this as needed)
+    const firstImageUrl = formData.imageUrls[0]; // Get the first URL (you can adjust this as needed)
   
     if (!firstImageUrl?.startsWith('file://')) {
       console.error('Invalid image URL. It should start with "file://".');
@@ -247,10 +318,13 @@ const CreateProductScreen = () => {
   
       const filePath = `${randomUUID()}.png`;
       const contentType = 'image/png';
-  
+      
+      console.log('filePath',filePath)
+      // Supprimez la ligne suivante car elle n'est pas nécessaire
+      // console.log(' base64',decode(base64))
       const { data, error } = await supabase.storage
-        .from('product-images')
-        .upload(filePath, decode(base64), { contentType });
+        .from('annonces-images')
+        .upload(filePath, base64, { contentType }); // Passez la chaîne base64 directement
   
       if (error) {
         console.error('Error uploading image:', error);
@@ -259,6 +333,7 @@ const CreateProductScreen = () => {
   
       if (data) {
         return data.path;
+        console.log(' data',   data)
       }
     } catch (error) {
       console.error('An error occurred while processing the image:', error);
@@ -268,28 +343,7 @@ const CreateProductScreen = () => {
   }
   
 
-  {/*async function uploadImage(): Promise<string | undefined>{
-    const imageUrls=formData.imageUrls
-    if (!imageUrls?.startsWith('file://')) {
-      return;
-    }
-
-    const base64 = await FileSystem.readAsStringAsync(imageUrls, {
-      encoding: 'base64',
-    });
-    const filePath = `${randomUUID()}.png`;
-    const contentType = 'image/png';
-
-    const { data, error } = await supabase.storage
-      .from('product-images')
-      .upload(filePath, decode(base64), { contentType });
-
-    console.log(error);
-
-    if (data) {
-      return data.path;
-    }
-  };*/}
+  const windowWidth = Dimensions.get('window').width;
   
 
   return (
@@ -299,13 +353,28 @@ const CreateProductScreen = () => {
     options={{ title: isUpdating ? 'UpdateAnnonce' : 'Create Annonce' }}
   />
 
-  <Image
+  {/*<Image
     source={{ uri: formData.imageUrls[0] || formData.imageUrls[0] }}
     style={styles.image}
+  />*/}
+   <ScrollView
+      horizontal={true}
+      showsHorizontalScrollIndicator={false}
+    >
+  {formData.imageUrls.map((imageUrl, index) => (
+  <Image
+    key={index}
+    source={{ uri: imageUrl }}
+    style={{ width: windowWidth, height: 200 }}
+    resizeMode='contain'
   />
-  <Text onPress={pickImage} style={styles.textButton}>
-    Select Image
-  </Text>
+))}
+</ScrollView>
+  
+  <TouchableOpacity onPress={pickImage} style={styles.fab}>
+        <Ionicons name="camera-outline" size={30} color={'#fff'} />
+      </TouchableOpacity>
+  
 
   <Text style={styles.label}>titre</Text>
   <TextInput
@@ -384,8 +453,8 @@ const CreateProductScreen = () => {
 
 
 
-      <Text style={{ color: 'red' }}>{errors}</Text>
-      <Button onPress={onSubmit} text={isUpdating ? 'Update' : 'Create'} />
+      {/*<Text style={{ color: 'red' }}>{errors}</Text>*/}
+      <Button onPress={submitToSupabase} text={isUpdating ? 'Update' : 'Create'} />
       {isUpdating && (
         <Text onPress={confirmDelete} style={styles.textButton}>
           Delete
@@ -415,6 +484,19 @@ const styles = StyleSheet.create({
     color: Colors.light.tint,
     marginVertical: 10,
   },
+  fab: {
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 70,
+    position: 'absolute',
+    bottom: 40,
+    right: 30,
+    height: 70,
+    backgroundColor: '#2b825b',
+    borderRadius: 100,
+  },
+ 
 
   input: {
     backgroundColor: 'white',
@@ -428,3 +510,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
+
+
+//ERROR  Invalid image URL. It should start with "file://".
+ //ERROR  An error occurred while processing the image: [SyntaxError: JSON Parse error: Unexpected character ERROR  An error occurred while processing the image: [SyntaxError: JSON Parse error: Unexpected character: e]

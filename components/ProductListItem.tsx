@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Image, Pressable } from 'react-native';
+import { StyleSheet, Text, View, Image, Pressable, ScrollView } from 'react-native';
 import Colors from '../constants/Colors';
 import { Tables } from '../types';
 import { Link, useSegments } from 'expo-router';
@@ -8,26 +8,35 @@ export const defaultPizzaImage =
   'https://notjustdev-dummy.s3.us-east-2.amazonaws.com/food/default.png';
 
 type ProductListItemProps = {
-  annonce: Tables<'annonce'>;
+  annonce: Tables<'annonces'>;
 };
 
 const ProductListItem = ({ annonce }: ProductListItemProps) => {
   const segments = useSegments();
+  const imageUrl = annonce?.imageUrls?.[0];
+
 //${segments[0]}
   return (
     <Link href={`/(admin)/menu/${annonce.id}`} asChild>
-      <Pressable style={styles.container}>
-      <RemoteImage
-        path={annonce?.imageUrls[0]} 
-        fallback={annonce?.imageUrls[0]} 
-        style={styles.image}
-      />
-
-<Text style={styles.title}>{annonce.name}</Text>
-        <Text style={styles.price}>fcfa{annonce.regularPrice}</Text>
-        <Text style={styles.type}>{annonce.type}</Text> 
-        <Text style={styles.address}>{annonce.address}</Text>
+                 <Pressable style={styles.container}>
+      {imageUrl && (
+        
+     
+            <RemoteImage
+              path={annonce?.imageUrls}
+              fallback={annonce?.imageUrls[0]}
+              style={styles.image} />
+           
+         
+          )}
+        
+          <Text style={styles.title}>{annonce.name}</Text>
+          <Text style={styles.price}>fcfa{annonce.regularPrice}
+          </Text><Text style={styles.type}>{annonce.type}</Text>
+          <Text style={styles.address}>{annonce.address}</Text>
+         
       </Pressable>
+      
     </Link>
   );
 };

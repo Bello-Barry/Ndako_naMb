@@ -22,7 +22,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.anonymous.Ndako_naMb"
     },
     "web": {
       "bundler": "metro",
@@ -30,12 +31,12 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "expo-image-picker",
       "expo-router"
     ],
     "experiments": {
       "typedRoutes": true,
       "tsconfigPaths": true
     }
-
   }
 }

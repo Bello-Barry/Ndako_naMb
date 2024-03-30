@@ -35,13 +35,13 @@ export type annonce ={
   description: string;
   address: string;
   regularPrice: number;
-  discountPrice: number;
+  
   bathrooms: number;
   bedrooms: number;
-  furnished: boolean;
+ 
   parking: boolean;
   type: string;
-  offer: string;
+
   imageUrls: string[];
 };
 
@@ -74,7 +74,3 @@ export type OrderItem = {
   quantity: number;
 };
 
-export type Profile = {
-  id: string;
-  group: string;
-};
