@@ -21,7 +21,7 @@ import { decode } from 'base64-arraybuffer';
 import { annonce } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 
-const CreateProductScreen = () => {
+const CreateProductScreen = async () => {
   const [formData, setFormData] = useState<annonce>({
     name: '',
     description: '',
@@ -116,11 +116,11 @@ const [image, setImage] = useState<string | null>(null);
       return;
     }
 
-    const imagePath = await uploadImage();
+    //const imagePath = await uploadImage();
     const newAnnonce: Omit<annonce, 'id'> = { ...formData  };
 
-    if (imagePath) {
-      newAnnonce.imageUrls = [imagePath];
+    if (formData.imageUrls) {
+      newAnnonce.imageUrls = formData.imageUrls;
     }
     console.log('formData',formData)
     console.log('formDataimageUrls',formData.imageUrls)
@@ -143,12 +143,12 @@ const [image, setImage] = useState<string | null>(null);
       return;
     }
 
-    const imagePath = await uploadImage();
+    //const imagePath = await uploadImage();
      {/* id, name, regularPrice: parseFloat(regularPrice), image: imagePath*/ }
 
     updateAnnonce(
      
-      {...formData, imageUrls:[imagePath]},
+      {...formData, imageUrls:formData.imageUrls},
       {
         onSuccess: () => {
           resetFields();
@@ -265,13 +265,14 @@ const pickImage = async () => {
       },
     ]);
   };
-
   const submitToSupabase = async () => {
-    const imagePath = await uploadImage();
-    
     try {
+      // Téléchargez les images et obtenez les URLs
+      const uploadedImageUrls = await uploadImages(formData);
+  
+      // Insérez les données dans la table Supabase
       const { data, error } = await supabase
-        .from('annonces') // Remplacez 'annonces' par le nom de votre table
+        .from('annonces')
         .insert([
           {
             name: formData.name,
@@ -282,67 +283,68 @@ const pickImage = async () => {
             bedrooms: formData.bedrooms,
             parking: formData.parking,
             type: formData.type,
-            imageUrls: formData.imageUrls,
+            imageUrls: uploadedImageUrls, // Utilisez les URLs des images téléchargées
           },
         ]);
   
-      if (error) throw error;
-  
-      // Gérer la réponse de succès ici
-      console.log('Données soumises avec succès :', data);
+      if (error) {
+        console.error('Erreur lors de l\'insertion des données :', error);
+      } else {
+        console.log('Données soumises avec succès :', data);
+      }
     } catch (error) {
-      // Gérer l'erreur ici
       console.error('Erreur lors de la soumission des données :', error);
     }
   };
-
-  async function uploadImage(): Promise<string | undefined> {
-    //const imageUrls = formData.imageUrls; // Assuming formData is defined elsewhere
   
+  async function uploadImages(formData: { imageUrls: string[] }): Promise<string[] | undefined> {
     if (!Array.isArray(formData.imageUrls)) {
       console.error('imageUrls should be an array of strings.');
       return;
     }
-  
-    const firstImageUrl = formData.imageUrls[0]; // Get the first URL (you can adjust this as needed)
-  
-    if (!firstImageUrl?.startsWith('file://')) {
-      console.error('Invalid image URL. It should start with "file://".');
+    
+    const uploadedImageUrls: string[] = [];
+    const baseFilePath = 'images'; // Chemin de base pour toutes les images
+    
+    try {
+      for (const imageUrl of formData.imageUrls) {
+        if (!imageUrl.startsWith('file://')) {
+          console.error('Invalid image URL. It should start with "file://".');
+          continue;
+        }
+    
+        const base64 = await FileSystem.readAsStringAsync(imageUrl, {
+          encoding: 'base64',
+        });
+    
+        const filePath = `${baseFilePath}/${randomUUID()}.png`; // Chemin unique pour chaque image
+        const contentType = 'image/png';
+    
+        const { data, error } = await supabase.storage
+          .from('annonces-images')
+          .upload(filePath, base64, { contentType });
+    
+        if (error) {
+          console.error('Error uploading image:', error);
+          continue;
+        }
+    
+        if (data) {
+          uploadedImageUrls.push(data.path);
+          console.log('Uploaded image:', data.path);
+        }
+      }
+    
+      return uploadedImageUrls;
+    } catch (error) {
+      console.error('An error occurred while processing the images:', error);
       return;
     }
-  
-    try {
-      const base64 = await FileSystem.readAsStringAsync(firstImageUrl, {
-        encoding: 'base64',
-      });
-  
-      const filePath = `${randomUUID()}.png`;
-      const contentType = 'image/png';
-      
-      console.log('filePath',filePath)
-      // Supprimez la ligne suivante car elle n'est pas nécessaire
-      // console.log(' base64',decode(base64))
-      const { data, error } = await supabase.storage
-        .from('annonces-images')
-        .upload(filePath, base64, { contentType }); // Passez la chaîne base64 directement
-  
-      if (error) {
-        console.error('Error uploading image:', error);
-        return;
-      }
-  
-      if (data) {
-        return data.path;
-        console.log(' data',   data)
-      }
-    } catch (error) {
-      console.error('An error occurred while processing the image:', error);
-    }
-  
-    return undefined;
   }
+  //const uploadedUrls = await uploadImages(formData);
+  console.log('formData:', formData );
   
-
+      
   const windowWidth = Dimensions.get('window').width;
   
 
@@ -352,29 +354,25 @@ const pickImage = async () => {
       <Stack.Screen
     options={{ title: isUpdating ? 'UpdateAnnonce' : 'Create Annonce' }}
   />
+ {/*<Image
+   source={{ uri: formData.imageUrls[0] || formData.imageUrls[0] }}
+   style={styles.image}
+ />*/}
 
-  {/*<Image
-    source={{ uri: formData.imageUrls[0] || formData.imageUrls[0] }}
-    style={styles.image}
-  />*/}
-   <ScrollView
-      horizontal={true}
-      showsHorizontalScrollIndicator={false}
-    >
-  {formData.imageUrls.map((imageUrl, index) => (
+<ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
+{formData.imageUrls.map((imageUrl, index) => (
   <Image
-    key={index}
+    key={imageUrl} // Utilisez une valeur unique ici (par exemple, imageUrl)
     source={{ uri: imageUrl }}
     style={{ width: windowWidth, height: 200 }}
-    resizeMode='contain'
+    resizeMode="contain"
   />
 ))}
 </ScrollView>
-  
-  <TouchableOpacity onPress={pickImage} style={styles.fab}>
-        <Ionicons name="camera-outline" size={30} color={'#fff'} />
-      </TouchableOpacity>
-  
+<TouchableOpacity onPress={pickImage} style={styles.fab}>
+      <Ionicons name="camera-outline" size={30} color={'#fff'} />
+  </TouchableOpacity>
+ 
 
   <Text style={styles.label}>titre</Text>
   <TextInput
@@ -511,7 +509,3 @@ const styles = StyleSheet.create({
   },
 });
 
-
-
-//ERROR  Invalid image URL. It should start with "file://".
- //ERROR  An error occurred while processing the image: [SyntaxError: JSON Parse error: Unexpected character ERROR  An error occurred while processing the image: [SyntaxError: JSON Parse error: Unexpected character: e]
