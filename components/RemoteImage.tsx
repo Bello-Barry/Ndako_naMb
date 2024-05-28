@@ -1,63 +1,9 @@
-{/*import { Image, View } from 'react-native';
-import React, { ComponentProps, useEffect, useMemo, useState } from 'react';
-import { supabase } from '../lib/supabase';
-import { FileObject } from '@supabase/storage-js'
-
-type RemoteImageProps = {
-  path?: string[] | null;
-  fallback: string | FileObject;
-} & Omit<ComponentProps<typeof Image>, 'source'>;
-
-const RemoteImage = ({ path, fallback, ...imageProps }: RemoteImageProps) => {
-  const [image, setImage] = useState('');
-
-  useEffect(() => {
-    if (!path) return;
-    (async () => {
-      setImage('');
-      const { data, error } = await supabase.storage
-        .from('annonces-images')
-        .download(path);
-
-      if (error) {
-        console.log(error);
-      }
-
-      if (data) {
-        const fr = new FileReader();
-        fr.readAsDataURL(data);
-        fr.onload = () => {
-          setImage(fr.result as string);
-        };
-      }
-    })();
-  }, [path]);
-
-  if (!image) {
-  }
-
-  
-  return (
-    <View style={{ flexDirection: 'row', margin: 1, alignItems: 'center', gap: 5 }}>
-      {image ? (
-        <Image style={{ width: 100, height: 100 }} source={{ uri: image }} />
-      ) : (
-        <View style={{ width: 100, height: 80, backgroundColor: '#1A1A1A' }} />
-      )}
-      
-    </View>
-  )
- 
- 
-};
-//<Image source={{ uri: image || fallback }} {...imageProps} />;
-export default RemoteImage;*/}
-import { Image, View } from 'react-native';
+import { Image, View, StyleSheet } from 'react-native';
 import React, { ComponentProps, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 type RemoteImageProps = {
-  paths?: string[] | null; // Modifié pour être un tableau de chaînes
+  paths?: string[] | null;
   fallback: string;
 } & Omit<ComponentProps<typeof Image>, 'source'>;
 
@@ -65,42 +11,65 @@ const RemoteImage = ({ paths, fallback, ...imageProps }: RemoteImageProps) => {
   const [images, setImages] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!paths || paths.length === 0) {
-      setImages([fallback]);
-      return;
-    }
-    setImages([]);
-    paths.forEach(async (path, index) => {
-      // Remplacer les caractères invalides par des underscores
-      const sanitizedPath = path.replace(/[^a-zA-Z0-9-_.]/g, '_');
-      
-      const { data, error } = await supabase.storage
-        .from('annonces-images')
-        .download(sanitizedPath);
-  
-      if (error) {
-        console.error('Erreur de téléchargement:', error.message);
-        setImages(prevImages => [...prevImages, fallback]);
+    const loadImages = async () => {
+      if (!paths || paths.length === 0) {
+        setImages([fallback]);
         return;
       }
-  
-      if (data) {
-        const fr = new FileReader();
-        fr.readAsDataURL(data);
-        fr.onloadend = () => {
-          setImages(prevImages => [...prevImages, fr.result as string]);
-        };
-      }
-    });
+
+      const imagePromises = paths.slice(0, 6).map(async (path) => {
+        // Remplacer les caractères invalides par des underscores
+        const sanitizedPath = path.replace(/[^a-zA-Z0-9-_.]/g, '_');
+
+        const { data, error } = await supabase.storage
+          .from('annonces-images')
+          .download(sanitizedPath);
+
+        if (error) {
+          console.error('Erreur de téléchargement:', error.message);
+          return fallback;
+        }
+
+        if (data) {
+          const fr = new FileReader();
+          fr.readAsDataURL(data);
+          return new Promise<string>((resolve) => {
+            fr.onloadend = () => resolve(fr.result as string);
+          });
+        }
+
+        return fallback;
+      });
+
+      const loadedImages = await Promise.all(imagePromises);
+      setImages(loadedImages);
+    };
+
+    loadImages();
   }, [paths, fallback]);
-  
+
   return (
-    <View style={{ flexDirection: 'row', margin: 1, alignItems: 'center', gap: 5 }}>
+    <View style={styles.imageContainer}>
       {images.map((img, index) => (
-        <Image key={index} source={{ uri: img }} {...imageProps} />
+        <Image key={index} source={{ uri: img }} style={styles.image} {...imageProps} />
       ))}
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  imageContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap', // Pour permettre plusieurs images sur plusieurs lignes si nécessaire
+    margin: 1,
+    alignItems: 'center',
+    gap: 5,
+  },
+  image: {
+    width: 100,
+    height: 100,
+    margin: 5,
+  },
+});
 
 export default RemoteImage;
