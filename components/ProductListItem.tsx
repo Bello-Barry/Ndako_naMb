@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Image, Pressable, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, Pressable } from 'react-native';
 import Colors from '../constants/Colors';
 import { Tables } from '../types';
 import { Link, useSegments } from 'expo-router';
@@ -13,91 +13,34 @@ type ProductListItemProps = {
 
 const ProductListItem = ({ annonce }: ProductListItemProps) => {
   const segments = useSegments();
-  const imageUrl = annonce?.imageUrls?.[0];
+  const imageUrls = annonce?.imageUrls || [];
 
-//${segments[0]}
   return (
     <Link href={`/(admin)/menu/${annonce.id}`} asChild>
-                 <Pressable style={styles.container}>
-      {imageUrl && (
-        
-     
-            <RemoteImage
-              path={annonce?.imageUrls}
-              fallback={annonce?.imageUrls[0]}
-              style={styles.image} />
-           
-         
-          )}
-        
-          <Text style={styles.title}>{annonce.name}</Text>
-          <Text style={styles.price}>fcfa{annonce.regularPrice}
-          </Text><Text style={styles.type}>{annonce.type}</Text>
-          <Text style={styles.address}>{annonce.address}</Text>
-         
-      </Pressable>
-      
-    </Link>
-  );
-};
-
-export default ProductListItem;
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: 'white',
-    padding: 10,
-    borderRadius: 20,
-    flex: 1,
-    maxWidth: '50%',
-  },
-
-  image: {
-    width: '100%',
-    aspectRatio: 1,
-  },
-
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginVertical: 10,
-  },
-  price: {
-    color: Colors.light.tint,
-    fontWeight: 'bold',
-  },
-  type: {
-    color: 'gray', // Style pour le champ "type"
-  },
-  address: {
-    color: 'gray', // Style pour le champ "address"
-  },
-});
-{/*
-const AnnonceListItem = ({ annonce }: AnnonceListItemProps) => {
-  const segments = useSegments();
-
-  return (
-    <Link href={`/${segments[0]}/annonce/${annonce.id}`} asChild>
       <Pressable style={styles.container}>
-        <RemoteImage
-          path={annonce.imageUrls}
-          fallback={defaultImage}
-          style={styles.image}
-          resizeMode="contain"
-        />
+        {imageUrls.length > 0 ? (
+          <RemoteImage
+            paths={imageUrls}
+            fallback={defaultPizzaImage}
+            style={styles.image}
+          />
+        ) : (
+          <RemoteImage
+            paths={null}
+            fallback={defaultPizzaImage}
+            style={styles.image}
+          />
+        )}
 
         <Text style={styles.title}>{annonce.name}</Text>
-        <Text style={styles.price}>${annonce.regularPrice}</Text>
-        <Text style={styles.type}>{annonce.type}</Text> 
+        <Text style={styles.price}>fcfa{annonce.regularPrice}</Text>
+        <Text style={styles.type}>{annonce.type}</Text>
         <Text style={styles.address}>{annonce.address}</Text>
       </Pressable>
     </Link>
   );
 };
 
-export default AnnonceListItem;
-
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'white',
@@ -106,12 +49,10 @@ const styles = StyleSheet.create({
     flex: 1,
     maxWidth: '50%',
   },
-
   image: {
     width: '100%',
     aspectRatio: 1,
   },
-
   title: {
     fontSize: 18,
     fontWeight: '600',
@@ -122,10 +63,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   type: {
-    color: 'gray', // Style pour le champ "type"
+    color: 'gray',
   },
   address: {
-    color: 'gray', // Style pour le champ "address"
+    color: 'gray',
   },
 });
-*/}
+
+export default ProductListItem;
